@@ -38,16 +38,6 @@ LOCAL_STATIC_LIBRARIES := libc
 LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
 LOCAL_MODULE_TAGS := debug tests
 
-SYMLINKS := $(TARGET_OUT)/etc/firmware/wifi/pds
-
-$(SYMLINKS): $(LOCAL_PATH)/Android.mk
-	@echo "Symlink: $@ -> /pds/wifi"
-	@mkdir -p $(dir $@)
-	@rm -rf $@
-	$(hide) ln -sf /pds/wifi $@
-
-ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
-
 include $(BUILD_EXECUTABLE)
 
 endif

@@ -204,6 +204,18 @@ dhdcdc_set_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len)
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 	DHD_CTL(("%s: cmd %d len %d\n", __FUNCTION__, cmd, len));
 
+	if (dhd->busstate == DHD_BUS_DOWN) {
+		DHD_ERROR(("%s : bus is down. we have nothing to do\n", __FUNCTION__));
+		return -EIO;
+	}
+
+	/* send to dongle  only if we are not waiting for reload already*/
+	if (dhd->hang_was_sent) {
+		DHD_ERROR(("%s: HANG was sent up earlier. Not talking to the chip\n", __FUNCTION__));
+		return -EIO;
+	}
+
+
 	memset(msg, 0, sizeof(cdc_ioctl_t));
 
 	msg->cmd = htol32(cmd);
@@ -253,7 +265,14 @@ dhd_prot_ioctl(dhd_pub_t *dhd, int ifidx, wl_ioctl_t * ioc, void * buf, int len)
 	if (dhd->busstate == DHD_BUS_DOWN) {
 		DHD_ERROR(("%s : bus is down. we have nothing to do\n", __FUNCTION__));
 		return ret;
+	 }
+
+	/* send to dongle  only if we are not waiting for reload already*/
+	if (dhd->hang_was_sent) {
+		DHD_ERROR(("%s: HANG was sent up earlier. Not talking to the chip\n", __FUNCTION__));
+		return ret;
 	}
+
 	dhd_os_proto_block(dhd);
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));

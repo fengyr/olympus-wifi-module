@@ -138,6 +138,17 @@ int wifi_get_mac_addr(unsigned char *buf)
          return -EOPNOTSUPP;
 }
 
+void *wifi_get_country_code(unsigned char *buf)
+{
+        printk("%s\n", __FUNCTION__);
+        if (!buf)
+                return NULL;
+         if (wifi_control_data && wifi_control_data->get_country_code) {
+                 return wifi_control_data->get_country_code(buf);
+         }
+         return NULL;
+}
+
 static int wifi_probe(struct platform_device *pdev)
 {
 	struct wifi_platform_data *wifi_ctrl =
@@ -168,15 +179,22 @@ static int wifi_remove(struct platform_device *pdev)
 	up(&wifi_control_sem);
 	return 0;
 }
+
 static int wifi_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	DHD_ERROR(("##> %s\n", __FUNCTION__));
+	DHD_TRACE(("##> %s\n", __FUNCTION__));
+#if defined(OOB_INTR_ONLY)
+	bcmsdh_oob_intr_set(0);
+#endif /* (OOB_INTR_ONLY) */
 	return 0;
 }
 static int wifi_resume(struct platform_device *pdev)
 {
-	DHD_ERROR(("##> %s\n", __FUNCTION__));
-	 return 0;
+	DHD_TRACE(("##> %s\n", __FUNCTION__));
+#if defined(OOB_INTR_ONLY)
+	bcmsdh_oob_intr_set(1);
+#endif /* (OOB_INTR_ONLY) */
+	return 0;
 }
 
 static struct platform_driver wifi_device = {
@@ -301,7 +319,6 @@ typedef struct dhd_info {
 	tsk_ctl_t	thr_sysioc_ctl;
 /* 	--------------------------  */
 
-    int hang_was_sent; /* flag that message was send at least once */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
 	struct mutex wl_start_lock; /* mutex when START called to prevent any other Linux calls */
 #endif 
@@ -1920,7 +1937,13 @@ dhd_ioctl_entry(struct net_device *net, struct ifreq *ifr, int cmd)
 	}
 
 	if (!dhd->pub.iswl) {
-		DHD_ERROR(("%s DONGLE_DOWN is not wl\n", __FUNCTION__));
+		bcmerror = BCME_DONGLE_DOWN;
+		goto done;
+	}
+
+	   /* send to dongle  only if we are not waiting for reload already*/
+	if (dhd->pub.hang_was_sent) {
+		DHD_ERROR(("%s: HANG was sent up earlier. Not talking to the chip\n", __FUNCTION__));
 		bcmerror = BCME_DONGLE_DOWN;
 		goto done;
 	}
@@ -3309,8 +3332,8 @@ int net_os_send_hang_message(struct net_device *dev)
 	int ret = 0;
 
 	if (dhd) {
-		if (!dhd->hang_was_sent) {
-			dhd->hang_was_sent = 1;
+		if (!dhd->pub.hang_was_sent) {
+			dhd->pub.hang_was_sent = 1;
 			ret = wl_iw_send_priv_event(dev, "HANG");
 		}
 	}

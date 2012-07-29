@@ -643,7 +643,33 @@ wl_iw_set_passive_scan(
 	return error;
 }
 
+static int 
+wl_iw_get_txpower(
+	struct net_device *dev,
+	struct iw_request_info *info,
+	union iwreq_data *wrqu,
+	char *extra
+)
+{
+	int error = 0;
+	char *p = extra;
 
+	int disable, txpwrdbm;
+	uint8 result;
+
+	WL_TRACE(("%s: --%s-- \n", dev->name, __func__));
+
+	if ((error = dev_wlc_ioctl(dev, WLC_GET_RADIO, &disable, sizeof(disable))) ||
+	    (error = dev_wlc_intvar_get(dev, "qtxpower", &txpwrdbm)))
+		return error;
+
+	result = (uint8)(txpwrdbm & ~WL_TXPWR_OVERRIDE);
+
+	p += snprintf(p, MAX_WX_STRING, "%d", result);
+	wrqu->data.length = p - extra + 1;
+	WL_TRACE(("txpower result=%d\n", result));
+	return 0;		 
+}
 static int
 wl_iw_set_txpower(
 	struct net_device *dev,
@@ -656,6 +682,11 @@ wl_iw_set_txpower(
 	char *p = extra;
 	int txpower = -1;
 
+	if (0x00  == *(extra + strlen(TXPOWER_SET_CMD)))
+	{
+	    return wl_iw_get_txpower(dev, info, wrqu, extra);
+	}
+     
 	txpower = bcm_atoi(extra + strlen(TXPOWER_SET_CMD) + 1);
 	if ((txpower >= 0) && (txpower <= 127))
 	{
@@ -664,7 +695,6 @@ wl_iw_set_txpower(
 
 		error = dev_wlc_intvar_set(dev, "qtxpower", txpower);
 		p += snprintf(p, MAX_WX_STRING, "OK");
-		WL_TRACE(("%s: set TXpower 0x%X is OK\n", __FUNCTION__, txpower));
 	} else {
 		WL_ERROR(("%s: set tx power failed\n", __FUNCTION__));
 		p += snprintf(p, MAX_WX_STRING, "FAIL");
@@ -4929,6 +4959,7 @@ wl_iw_get_txpow(
 	vwrq->disabled = (disable & (WL_RADIO_SW_DISABLE | WL_RADIO_HW_DISABLE)) ? 1 : 0;
 	vwrq->flags = IW_TXPOW_MWATT;
 
+	WL_TRACE(("%s: SIOCGIWTXPOW , txpower =%d\n", dev->name, vwrq->value));
 	return 0;
 }
 
@@ -8262,10 +8293,8 @@ wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data)
 		break;
 	case WLC_E_ROAM:
 		if (status == WLC_E_STATUS_SUCCESS) {
-			
-			memcpy(wrqu.addr.sa_data, &e->addr.octet, ETHER_ADDR_LEN);
-			wrqu.addr.sa_family = ARPHRD_ETHER;
-			cmd = SIOCGIWAP;
+			WL_ERROR(("%s: Roaming success \n", __FUNCTION__));
+			return;
 		}
 	break;
 	case WLC_E_DEAUTH_IND:

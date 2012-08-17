@@ -256,6 +256,8 @@ DFLAGS += -DSOFTAP
 DFLAGS += -DKEEP_ALIVE
 DFLAGS += -DPNO_SUPPORT
 DFLAGS += -DCONFIG_FIRST_SCAN
+DFLAGS += -DCONFIG_LGE_BCM432X_PATCH
+DFLAGS += -DVOIP
 ifeq ("$(LINUX_MINOR)", "35")
 $(warning Gingerbread and K35.7 kernel needs extra defintions **)
 DFLAGS += -DHW_OOB

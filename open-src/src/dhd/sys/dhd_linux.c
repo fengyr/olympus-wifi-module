@@ -2401,12 +2401,23 @@ dhd_bus_start(dhd_pub_t *dhdp)
 /* enable dongle roaming event */
 	setbit(dhdp->eventmask, WLC_E_ROAM);
 
-	dhdp->pktfilter_count = 4;
+	dhdp->pktfilter_count = 5;
 	/* Setup filter to allow only unicast */
 	dhdp->pktfilter[0] = "100 0 0 0 0x01 0x00";
 	dhdp->pktfilter[1] = NULL;
 	dhdp->pktfilter[2] = NULL;
 	dhdp->pktfilter[3] = NULL;
+	/* Add filter to pass multicastDNS packet and NOT filter out as Broadcast */
+	dhdp->pktfilter[4] = "104 0 0 0 0xFFFFFFFFFFFF 0x01005E0000FB";
+#ifdef SOFTAP
+	int i;
+	for (i = 0; i < dhdp->pktfilter_count; i++) {
+		dhd_pktfilter_offload_enable(dhdp, dhdp->pktfilter[i],
+		0, dhd_master_mode);
+	}
+#endif /* SOFTAP */
+
+
 #endif /* EMBEDDED_PLATFORM */
 
 	/* Bus is ready, do any protocol initialization */

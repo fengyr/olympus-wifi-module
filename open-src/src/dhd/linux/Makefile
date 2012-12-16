@@ -261,7 +261,6 @@ DFLAGS += -DVOIP
 ifeq ("$(LINUX_MINOR)", "35")
 $(warning Gingerbread and K35.7 kernel needs extra defintions **)
 DFLAGS += -DHW_OOB
-DFLAGS += -DCSCAN
 endif
 else
 ifneq ($(findstring -oob-,-$(TARGET)-),)
@@ -299,7 +298,6 @@ DFLAGS += -DOOB_INTR_ONLY
 DFLAGS += -DMMC_SDIO_ABORT
 DFLAGS += -DSOFTAP
 DFLAGS += -DENABLE_ROAMING
-DFLAGS += -DCSCAN
 DFLAGS += -DCONFIG_FIRST_SCAN
 DFLAGS += -DPNO_SUPPORT
 DFLAGS += -DGET_CUSTOM_MAC_ENABLE
